@@ -108,7 +108,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Current Prices Panel</h1>
+        <h1>Current Prices Panel</h1>
         
         <div id="status" class="loader">Fetching latest data...</div>
         
@@ -209,7 +209,6 @@
                     const td = document.createElement('td');
                     let rawValue = item[col];
                     
-                    // Logika zaokrąglania: Sprawdź czy wartość jest liczbą i nie jest pusta
                     if (typeof rawValue === 'number') {
                         td.textContent = rawValue.toFixed(2);
                     } else {
