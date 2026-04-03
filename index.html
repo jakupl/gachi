@@ -3,299 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aktualne Ceny CS:GO / CS2</title>
+    <title>CS2 Price Checker & Inventory</title>
     <style>
         :root {
-            --primary-color: #2563eb;
-            --bg-color: #f8fafc;
-            --text-color: #1e293b;
-            --border-color: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --error-bg: #fef2f2;
+            --error-text: #ef4444;
+            --border: #e2e8f0;
         }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg-color); 
-            color: var(--text-color); 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text); 
             margin: 0; 
-            padding: 20px; 
+            padding: 20px;
+            line-height: 1.5;
         }
 
         .container { 
-            max-width: 1200px; 
+            max-width: 1100px; 
             margin: 0 auto; 
-            background: white; 
-            padding: 24px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); 
+            background: var(--card-bg); 
+            padding: 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
         }
 
         h1 { 
             text-align: center; 
-            color: var(--primary-color); 
-            margin-bottom: 24px;
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 2rem;
         }
 
-        /* --- Nowa sekcja dla Steam ID --- */
-        .steam-filter {
-            background-color: #f1f5f9;
+        /* Sekcja Steam ID */
+        .search-section {
+            background: #f1f5f9;
             padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 24px;
+            border-radius: 12px;
+            margin-bottom: 30px;
             display: flex;
-            gap: 10px;
-            align-items: center;
+            gap: 12px;
             justify-content: center;
+            align-items: center;
             flex-wrap: wrap;
         }
 
-        input[type="text"] {
-            padding: 10px 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            width: 300px;
+        input {
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            width: 320px;
             font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
         }
+
+        input:focus { border-color: var(--primary); }
 
         button {
-            padding: 10px 16px;
-            background-color: var(--primary-color);
-            color: white;
+            padding: 12px 20px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 1rem;
-            transition: background-color 0.2s;
+            font-size: 0.95rem;
+            transition: all 0.2s;
         }
 
-        button:hover { background-color: #1d4ed8; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: var(--text-muted); color: white; }
+        .btn-secondary:hover { background: #475569; }
+
+        /* Tabela */
+        .table-container { overflow-x: auto; margin-top: 20px; }
         
-        button.reset-btn {
-            background-color: #64748b;
-        }
-        button.reset-btn:hover { background-color: #475569; }
-        /* -------------------------------- */
-
-        .table-wrapper { overflow-x: auto; }
-
         table { 
             width: 100%; 
             border-collapse: collapse; 
-            margin-top: 10px; 
-        }
-
-        th, td { 
-            padding: 14px 16px; 
-            text-align: left; 
-            border-bottom: 1px solid var(--border-color); 
+            text-align: left;
         }
 
         th { 
-            background-color: var(--primary-color); 
-            color: white; 
-            font-weight: 600;
-            text-transform: capitalize;
+            background: var(--bg); 
+            padding: 16px; 
+            font-weight: 600; 
+            border-bottom: 2px solid var(--border);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
         }
 
-        tr:hover { background-color: #f1f5f9; }
+        td { padding: 16px; border-bottom: 1px solid var(--border); }
+        tr:hover { background: #f8fafc; }
 
-        .loader { 
-            text-align: center; 
-            padding: 40px; 
-            font-size: 1.1em;
-            color: #64748b; 
-        }
-
-        .error { 
-            color: #ef4444; 
-            text-align: center; 
+        /* Komunikaty */
+        .status-box {
+            text-align: center;
             padding: 20px;
-            font-weight: bold; 
-            background-color: #fef2f2;
+            margin: 20px 0;
             border-radius: 8px;
+            display: none;
         }
 
-        .footer { 
-            text-align: center; 
-            margin-top: 24px; 
-            font-size: 0.9em; 
-            color: #64748b; 
+        .loader { color: var(--text-muted); font-style: italic; }
+        .error { background: var(--error-bg); color: var(--error-text); border: 1px solid #fee2e2; display: block; }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 600px) {
+            input { width: 100%; }
+            .search-section { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📊 Panel Aktualnych Cen</h1>
-        
-        <div class="steam-filter">
-            <input type="text" id="steamIdInput" placeholder="Wklej Steam ID (np. 76561198289016347)">
-            <button onclick="filterBySteamInventory()">Pokaż moje przedmioty</button>
-            <button class="reset-btn" onclick="resetFilter()">Pokaż wszystko</button>
-        </div>
 
-        <div id="status" class="loader">Pobieranie najnowszych danych z bazy...</div>
-        
-        <div class="table-wrapper">
-            <table id="priceTable" style="display: none;">
-                <thead id="tableHead"></thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
+<div class="container">
+    <h1>📊 Market Watcher</h1>
 
-        <div class="footer">
-            Ostatnia aktualizacja bazy: <span id="lastUpdate">--:--</span><br>
-            Dane odświeżają się automatycznie co godzinę.
-        </div>
+    <div class="search-section">
+        <input type="text" id="steamIdInput" placeholder="Wklej Steam ID (np. 76561198289016347)">
+        <button class="btn-primary" onclick="loadUserInventory()">Filtruj mój ekwipunek</button>
+        <button class="btn-secondary" onclick="resetView()">Pokaż wszystkie</button>
     </div>
 
-    <script>
-        // --- KONFIGURACJA ---
-        const API_URL = 'https://enwwdqjsxqwspvtsubou.supabase.co/rest/v1/prices?apikey=sb_publishable_n_ms66jti5mt9p_9H0cDAg_rA-4IiFM&select=*';
+    <div id="statusMessage" class="status-box"></div>
+
+    <div class="table-container">
+        <table id="mainTable" style="display: none;">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        Ostatnia aktualizacja cen: <span id="updateTime">--:--:--</span><br>
+        Dane z Supabase odświeżane automatycznie co 60 minut.
+    </div>
+</div>
+
+<script>
+    // --- KONFIGURACJA ---
+    const SUPABASE_URL = 'https://enwwdqjsxqwspvtsubou.supabase.co/rest/v1/prices?apikey=sb_publishable_n_ms66jti5mt9p_9H0cDAg_rA-4IiFM&select=*';
+    
+    // ZMIEŃ TO: Wpisz nazwę kolumny z Twojej bazy Supabase, która zawiera nazwę przedmiotu (np. 'name' lub 'item_name')
+    const DB_NAME_COLUMN = 'name'; 
+
+    let cachedPrices = [];
+
+    // 1. Pobieranie danych z Supabase
+    async function fetchDatabase() {
+        showStatus("Pobieranie danych z bazy...", "loader");
+        try {
+            const response = await fetch(SUPABASE_URL);
+            if (!response.ok) throw new Error("Błąd połączenia z bazą danych.");
+            
+            cachedPrices = await response.json();
+            renderTable(cachedPrices);
+            
+            document.getElementById('updateTime').textContent = new Date().toLocaleTimeString();
+            hideStatus();
+        } catch (err) {
+            showStatus("❌ Nie udało się załadować bazy cen: " + err.message, "error");
+        }
+    }
+
+    // 2. Pobieranie ekwipunku Steam i filtrowanie
+    async function loadUserInventory() {
+        const steamId = document.getElementById('steamIdInput').value.trim();
         
-        // UWAGA: Zmień 'name' na nazwę kolumny w Twojej bazie Supabase, która zawiera nazwę przedmiotu!
-        const KOLUMNA_Z_NAZWA_PRZEDMIOTU = 'name'; 
-        // --------------------
+        if (!steamId || steamId.length < 16) {
+            alert("Proszę podać poprawny 17-cyfrowy Steam ID.");
+            return;
+        }
 
-        let allPricesData = []; // Tutaj przechowujemy wszystkie dane z Supabase
+        showStatus("⏳ Łączenie ze Steam (przez Proxy)...", "loader");
 
-        // Główna funkcja pobierająca z Supabase
-        async function fetchPrices() {
-            const statusEl = document.getElementById('status');
+        try {
+            // Używamy stabilnego proxy corsproxy.io
+            const steamUrl = `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=2000`;
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(steamUrl)}`;
+
+            const response = await fetch(proxyUrl);
             
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error(`Błąd serwera bazy (kod: ${response.status})`);
-
-                allPricesData = await response.json();
-
-                if (!allPricesData || allPricesData.length === 0) {
-                    statusEl.textContent = 'Baza danych jest obecnie pusta.';
-                    statusEl.style.display = 'block';
-                    document.getElementById('priceTable').style.display = 'none';
-                    return;
-                }
-
-                // Po pobraniu od razu renderujemy całą tabelę
-                renderTable(allPricesData);
-
-                // Aktualizacja czasu
-                const now = new Date();
-                document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-            } catch (error) {
-                console.error('Błąd pobierania danych z bazy:', error);
-                statusEl.innerHTML = `<div class="error">Problem z bazą danych:<br>${error.message}</div>`;
-            }
-        }
-
-        // Funkcja rysująca tabelę na podstawie przekazanych danych
-        function renderTable(dataToRender) {
-            const statusEl = document.getElementById('status');
-            const tableEl = document.getElementById('priceTable');
-            const theadEl = document.getElementById('tableHead');
-            const tbodyEl = document.getElementById('tableBody');
-
-            theadEl.innerHTML = '';
-            tbodyEl.innerHTML = '';
-
-            if (dataToRender.length === 0) {
-                statusEl.innerHTML = '<div class="error">Brak przedmiotów do wyświetlenia.</div>';
-                statusEl.style.display = 'block';
-                tableEl.style.display = 'none';
-                return;
+            if (!response.ok) {
+                if (response.status === 403) throw new Error("Ekwipunek jest PRYWATNY. Zmień ustawienia na Steam.");
+                if (response.status === 429) throw new Error("Steam blokuje zapytanie (Rate Limit). Spróbuj za chwilę.");
+                throw new Error("Steam nie odpowiedział poprawnie.");
             }
 
-            // Pobieranie nazw kolumn z pierwszego elementu
-            const columns = Object.keys(dataToRender[0]);
+            const data = await response.json();
             
-            // Generowanie nagłówków
-            const headerRow = document.createElement('tr');
-            columns.forEach(col => {
-                const th = document.createElement('th');
-                th.textContent = col.replace(/_/g, ' '); 
-                headerRow.appendChild(th);
-            });
-            theadEl.appendChild(headerRow);
+            if (!data.descriptions) throw new Error("Nie znaleziono przedmiotów w ekwipunku.");
 
-            // Wypełnianie tabeli danymi
-            dataToRender.forEach(item => {
-                const row = document.createElement('tr');
-                columns.forEach(col => {
-                    const td = document.createElement('td');
-                    td.textContent = (item[col] !== null && item[col] !== undefined) ? item[col] : '-';
-                    row.appendChild(td);
-                });
-                tbodyEl.appendChild(row);
-            });
+            // Tworzymy listę nazw przedmiotów, które posiada gracz
+            const inventoryNames = new Set(data.descriptions.map(i => i.market_hash_name));
 
-            statusEl.style.display = 'none';
-            tableEl.style.display = 'table';
-        }
+            // Filtrujemy dane z bazy
+            const filtered = cachedPrices.filter(item => inventoryNames.has(item[DB_NAME_COLUMN]));
 
-        // Funkcja pobierająca ekwipunek Steam i filtrująca tabelę
-        async function filterBySteamInventory() {
-            const steamId = document.getElementById('steamIdInput').value.trim();
-            const statusEl = document.getElementById('status');
-            const tableEl = document.getElementById('priceTable');
-
-            if (!steamId || steamId.length !== 17) {
-                alert("Wprowadź prawidłowy, 17-cyfrowy Steam ID (np. 76561198289016347).");
-                return;
+            if (filtered.length === 0) {
+                showStatus("ℹ️ Masz publiczny ekwipunek, ale żadnego z Twoich przedmiotów nie ma w naszej bazie cen.", "loader");
+                document.getElementById('mainTable').style.display = 'none';
+            } else {
+                renderTable(filtered);
+                hideStatus();
             }
 
-            tableEl.style.display = 'none';
-            statusEl.style.display = 'block';
-            statusEl.textContent = 'Pobieranie ekwipunku ze Steam (to może chwilę potrwać)...';
-
-            try {
-                // Używamy darmowego proxy (allorigins), aby ominąć blokadę CORS przeglądarki
-                const steamUrl = `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=2000`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(steamUrl)}`;
-
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) throw new Error('Nie udało się pobrać ekwipunku. Upewnij się, że ekwipunek jest publiczny i profil istnieje.');
-
-                const steamData = await response.json();
-
-                // Sprawdzamy czy użytkownik ma przedmioty
-                if (!steamData || !steamData.descriptions || steamData.descriptions.length === 0) {
-                    throw new Error("Ekwipunek jest pusty, prywatny lub nie masz przedmiotów w CS2.");
-                }
-
-                // Zbieramy unikalne nazwy przedmiotów gracza
-                // Używamy 'market_hash_name', bo to pełna nazwa z kondycją (np. "AK-47 | Redline (Field-Tested)")
-                const userOwnedItems = new Set();
-                steamData.descriptions.forEach(item => {
-                    if (item.market_hash_name) {
-                        userOwnedItems.add(item.market_hash_name);
-                    }
-                });
-
-                // Filtrujemy nasze dane z Supabase
-                const filteredData = allPricesData.filter(dbItem => {
-                    const itemNameInDb = dbItem[KOLUMNA_Z_NAZWA_PRZEDMIOTU];
-                    // Sprawdzamy czy przedmiot z bazy znajduje się w zbiorze przedmiotów gracza
-                    return userOwnedItems.has(itemNameInDb);
-                });
-
-                renderTable(filteredData);
-
-            } catch (error) {
-                console.error('Błąd Steam API:', error);
-                statusEl.innerHTML = `<div class="error">${error.message}</div>`;
-            }
+        } catch (err) {
+            showStatus("❌ Błąd: " + err.message, "error");
         }
+    }
 
-        // Funkcja powrotu do pełnej listy
-        function resetFilter() {
-            document.getElementById('steamIdInput').value = '';
-            renderTable(allPricesData);
-        }
+    // 3. Renderowanie tabeli
+    function renderTable(data) {
+        const table = document.getElementById('mainTable');
+        const head = document.getElementById('tableHead');
+        const body = document.getElementById('tableBody');
 
-        // Inicjalizacja
-        fetchPrices();
-        setInterval(fetchPrices, 3600000); // Odświeżaj z bazy co godzinę
-    </script>
+        head.innerHTML = "";
+        body.innerHTML = "";
+
+        if (data.length === 0) return;
+
+        const cols = Object.keys(data[0]);
+
+        // Nagłówki
+        const trHead = document.createElement('tr');
+        cols.forEach(c => {
+            const th = document.createElement('th');
+            th.textContent = c.replace(/_/g, ' ');
+            trHead.appendChild(th);
+        });
+        head.appendChild(trHead);
+
+        // Wiersze
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            cols.forEach(c => {
+                const td = document.createElement('td');
+                td.textContent = row[c] ?? "-";
+                tr.appendChild(td);
+            });
+            body.appendChild(tr);
+        });
+
+        table.style.display = "table";
+    }
+
+    function resetView() {
+        document.getElementById('steamIdInput').value = "";
+        renderTable(cachedPrices);
+        hideStatus();
+    }
+
+    function showStatus(msg, type) {
+        const el = document.getElementById('statusMessage');
+        el.className = `status-box ${type}`;
+        el.innerHTML = msg;
+        el.style.display = "block";
+    }
+
+    function hideStatus() {
+        document.getElementById('statusMessage').style.display = "none";
+    }
+
+    // Inicjalizacja i pętla odświeżania (1h = 3600000ms)
+    fetchDatabase();
+    setInterval(fetchDatabase, 3600000);
+</script>
+
 </body>
 </html>
