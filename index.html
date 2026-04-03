@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prices</title>
+    <title>Aktualne Ceny CS:GO / CS2</title>
     <style>
         :root {
             --primary-color: #2563eb;
@@ -35,9 +35,48 @@
             margin-bottom: 24px;
         }
 
-        .table-wrapper {
-            overflow-x: auto;
+        /* --- Nowa sekcja dla Steam ID --- */
+        .steam-filter {
+            background-color: #f1f5f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
         }
+
+        input[type="text"] {
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            width: 300px;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 10px 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        button:hover { background-color: #1d4ed8; }
+        
+        button.reset-btn {
+            background-color: #64748b;
+        }
+        button.reset-btn:hover { background-color: #475569; }
+        /* -------------------------------- */
+
+        .table-wrapper { overflow-x: auto; }
 
         table { 
             width: 100%; 
@@ -58,9 +97,7 @@
             text-transform: capitalize;
         }
 
-        tr:hover { 
-            background-color: #f1f5f9; 
-        }
+        tr:hover { background-color: #f1f5f9; }
 
         .loader { 
             text-align: center; 
@@ -90,7 +127,13 @@
     <div class="container">
         <h1>📊 Panel Aktualnych Cen</h1>
         
-        <div id="status" class="loader">Pobieranie najnowszych danych...</div>
+        <div class="steam-filter">
+            <input type="text" id="steamIdInput" placeholder="Wklej Steam ID (np. 76561198289016347)">
+            <button onclick="filterBySteamInventory()">Pokaż moje przedmioty</button>
+            <button class="reset-btn" onclick="resetFilter()">Pokaż wszystko</button>
+        </div>
+
+        <div id="status" class="loader">Pobieranie najnowszych danych z bazy...</div>
         
         <div class="table-wrapper">
             <table id="priceTable" style="display: none;">
@@ -100,86 +143,159 @@
         </div>
 
         <div class="footer">
-            Ostatnia aktualizacja: <span id="lastUpdate">--:--</span><br>
+            Ostatnia aktualizacja bazy: <span id="lastUpdate">--:--</span><br>
             Dane odświeżają się automatycznie co godzinę.
         </div>
     </div>
 
     <script>
-        // Twój link do API Supabase
+        // --- KONFIGURACJA ---
         const API_URL = 'https://enwwdqjsxqwspvtsubou.supabase.co/rest/v1/prices?apikey=sb_publishable_n_ms66jti5mt9p_9H0cDAg_rA-4IiFM&select=*';
+        
+        // UWAGA: Zmień 'name' na nazwę kolumny w Twojej bazie Supabase, która zawiera nazwę przedmiotu!
+        const KOLUMNA_Z_NAZWA_PRZEDMIOTU = 'name'; 
+        // --------------------
 
+        let allPricesData = []; // Tutaj przechowujemy wszystkie dane z Supabase
+
+        // Główna funkcja pobierająca z Supabase
         async function fetchPrices() {
+            const statusEl = document.getElementById('status');
+            
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`Błąd serwera bazy (kod: ${response.status})`);
+
+                allPricesData = await response.json();
+
+                if (!allPricesData || allPricesData.length === 0) {
+                    statusEl.textContent = 'Baza danych jest obecnie pusta.';
+                    statusEl.style.display = 'block';
+                    document.getElementById('priceTable').style.display = 'none';
+                    return;
+                }
+
+                // Po pobraniu od razu renderujemy całą tabelę
+                renderTable(allPricesData);
+
+                // Aktualizacja czasu
+                const now = new Date();
+                document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            } catch (error) {
+                console.error('Błąd pobierania danych z bazy:', error);
+                statusEl.innerHTML = `<div class="error">Problem z bazą danych:<br>${error.message}</div>`;
+            }
+        }
+
+        // Funkcja rysująca tabelę na podstawie przekazanych danych
+        function renderTable(dataToRender) {
             const statusEl = document.getElementById('status');
             const tableEl = document.getElementById('priceTable');
             const theadEl = document.getElementById('tableHead');
             const tbodyEl = document.getElementById('tableBody');
-            const lastUpdateEl = document.getElementById('lastUpdate');
 
-            try {
-                const response = await fetch(API_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`Błąd serwera (kod: ${response.status})`);
-                }
+            theadEl.innerHTML = '';
+            tbodyEl.innerHTML = '';
 
-                const data = await response.json();
-
-                if (!data || data.length === 0) {
-                    statusEl.textContent = 'Baza danych jest obecnie pusta.';
-                    statusEl.style.display = 'block';
-                    tableEl.style.display = 'none';
-                    return;
-                }
-
-                // Czyszczenie tabeli przed nałożeniem nowych danych
-                theadEl.innerHTML = '';
-                tbodyEl.innerHTML = '';
-
-                // Pobieranie nazw kolumn z pierwszego elementu
-                const columns = Object.keys(data[0]);
-                
-                // Generowanie nagłówków tabeli
-                const headerRow = document.createElement('tr');
-                columns.forEach(col => {
-                    const th = document.createElement('th');
-                    // Zamiana np. "item_price" na "Item price" dla lepszego wyglądu
-                    th.textContent = col.replace(/_/g, ' '); 
-                    headerRow.appendChild(th);
-                });
-                theadEl.appendChild(headerRow);
-
-                // Wypełnianie tabeli danymi
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    columns.forEach(col => {
-                        const td = document.createElement('td');
-                        // Jeśli wartość to null, wstaw znak "-"
-                        td.textContent = (item[col] !== null && item[col] !== undefined) ? item[col] : '-';
-                        row.appendChild(td);
-                    });
-                    tbodyEl.appendChild(row);
-                });
-
-                // Pokazanie tabeli i ukrycie loadera
-                statusEl.style.display = 'none';
-                tableEl.style.display = 'table';
-                
-                // Aktualizacja czasu
-                const now = new Date();
-                lastUpdateEl.textContent = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-            } catch (error) {
-                console.error('Błąd pobierania danych:', error);
-                statusEl.innerHTML = `<div class="error">Wystąpił problem z pobraniem danych:<br>${error.message}</div>`;
+            if (dataToRender.length === 0) {
+                statusEl.innerHTML = '<div class="error">Brak przedmiotów do wyświetlenia.</div>';
                 statusEl.style.display = 'block';
                 tableEl.style.display = 'none';
+                return;
+            }
+
+            // Pobieranie nazw kolumn z pierwszego elementu
+            const columns = Object.keys(dataToRender[0]);
+            
+            // Generowanie nagłówków
+            const headerRow = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col.replace(/_/g, ' '); 
+                headerRow.appendChild(th);
+            });
+            theadEl.appendChild(headerRow);
+
+            // Wypełnianie tabeli danymi
+            dataToRender.forEach(item => {
+                const row = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.textContent = (item[col] !== null && item[col] !== undefined) ? item[col] : '-';
+                    row.appendChild(td);
+                });
+                tbodyEl.appendChild(row);
+            });
+
+            statusEl.style.display = 'none';
+            tableEl.style.display = 'table';
+        }
+
+        // Funkcja pobierająca ekwipunek Steam i filtrująca tabelę
+        async function filterBySteamInventory() {
+            const steamId = document.getElementById('steamIdInput').value.trim();
+            const statusEl = document.getElementById('status');
+            const tableEl = document.getElementById('priceTable');
+
+            if (!steamId || steamId.length !== 17) {
+                alert("Wprowadź prawidłowy, 17-cyfrowy Steam ID (np. 76561198289016347).");
+                return;
+            }
+
+            tableEl.style.display = 'none';
+            statusEl.style.display = 'block';
+            statusEl.textContent = 'Pobieranie ekwipunku ze Steam (to może chwilę potrwać)...';
+
+            try {
+                // Używamy darmowego proxy (allorigins), aby ominąć blokadę CORS przeglądarki
+                const steamUrl = `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=2000`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(steamUrl)}`;
+
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) throw new Error('Nie udało się pobrać ekwipunku. Upewnij się, że ekwipunek jest publiczny i profil istnieje.');
+
+                const steamData = await response.json();
+
+                // Sprawdzamy czy użytkownik ma przedmioty
+                if (!steamData || !steamData.descriptions || steamData.descriptions.length === 0) {
+                    throw new Error("Ekwipunek jest pusty, prywatny lub nie masz przedmiotów w CS2.");
+                }
+
+                // Zbieramy unikalne nazwy przedmiotów gracza
+                // Używamy 'market_hash_name', bo to pełna nazwa z kondycją (np. "AK-47 | Redline (Field-Tested)")
+                const userOwnedItems = new Set();
+                steamData.descriptions.forEach(item => {
+                    if (item.market_hash_name) {
+                        userOwnedItems.add(item.market_hash_name);
+                    }
+                });
+
+                // Filtrujemy nasze dane z Supabase
+                const filteredData = allPricesData.filter(dbItem => {
+                    const itemNameInDb = dbItem[KOLUMNA_Z_NAZWA_PRZEDMIOTU];
+                    // Sprawdzamy czy przedmiot z bazy znajduje się w zbiorze przedmiotów gracza
+                    return userOwnedItems.has(itemNameInDb);
+                });
+
+                renderTable(filteredData);
+
+            } catch (error) {
+                console.error('Błąd Steam API:', error);
+                statusEl.innerHTML = `<div class="error">${error.message}</div>`;
             }
         }
 
-        fetchPrices();
+        // Funkcja powrotu do pełnej listy
+        function resetFilter() {
+            document.getElementById('steamIdInput').value = '';
+            renderTable(allPricesData);
+        }
 
-        setInterval(fetchPrices, 3600000);
+        // Inicjalizacja
+        fetchPrices();
+        setInterval(fetchPrices, 3600000); // Odświeżaj z bazy co godzinę
     </script>
 </body>
 </html>
